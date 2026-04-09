@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="kyc-system/frontend/public/logo.png" width="72" height="72" alt="Microloan Foundation" />
+  <img src="frontend/public/logo.png" width="72" height="72" alt="Microloan Foundation" />
 </p>
 
 <h1 align="center">KYC System</h1>
