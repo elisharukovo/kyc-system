@@ -141,6 +141,25 @@ export function DocumentVerification({ applicant, onSuccess }: DocumentVerificat
         </p>
       </Alert>
 
+      {/* Dev-mode: show scoring rules so rejection can be demonstrated */}
+      {import.meta.env.DEV && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 space-y-1.5">
+          <p className="font-bold text-amber-900">Dev mode — verification scoring</p>
+          <p>Score ≥ 70 = <span className="font-semibold text-green-700">APPROVED</span> &nbsp;|&nbsp; Score &lt; 70 = <span className="font-semibold text-red-600">REJECTED</span></p>
+          <ul className="space-y-1 pl-2 border-l-2 border-amber-200">
+            <li><span className="font-semibold">+20</span> Document uploaded (almost always passes)</li>
+            <li><span className="font-semibold">+50</span> Loan ≤ 33% of annual income</li>
+            <li><span className="font-semibold">+25</span> Loan 33–66% of annual income</li>
+            <li><span className="font-semibold">+0</span> Loan &gt; 66% of annual income ← triggers rejection</li>
+            <li><span className="font-semibold">+30</span> Age 18–70</li>
+          </ul>
+          <p className="text-amber-700 pt-1">
+            💡 To demo rejection: set monthly income low relative to loan amount.<br />
+            Example: income $100/mo → annual $1,200 → loan &gt; $792 triggers rejection.
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <FormField label="Document Type" error={errors.documentType?.message} required>
           <Select

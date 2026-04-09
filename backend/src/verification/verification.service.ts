@@ -176,51 +176,66 @@ export class VerificationService {
     };
   }
 
-  // 
-  // In a real system this would call an external KYC provider (e.g. Smile Identity, Onfido)
+  // In a real system this would call an external KYC provider (e.g. Smile Identity, Onfido).
+  //
+  // Scoring breakdown (100 pts total, pass threshold = 70):
+  //   Rule 1 — Document completeness : 20 pts  (base64 data present and non-trivial)
+  //   Rule 2 — Loan-to-income ratio  : 50 pts  (<=33% annual income=50, <=66%=25, >66%=0)
+  //   Rule 3 — Age eligibility       : 30 pts  (applicant must be 18–70 years old)
+  //
+  // To trigger REJECTION in dev/demo:
+  //   Submit a loan amount greater than 66% of annual income (monthly income x 12).
+  //   Example: monthly income $200, loan $2000 → ratio 83% → score 50/100 → REJECTED.
 
   private mockDocumentVerification(
     documentData: string,
     applicant: any,
-  ): { passed: boolean; notes: string; reason?: string } {
+  ): { passed: boolean; notes: string; reason?: string; score: number } {
     let score = 0;
     const reasons: string[] = [];
 
-    // Rule 1: Document data must be non-trivial (at least 20 chars)
+    // Rule 1: Document completeness (20 pts)
     if (documentData && documentData.length >= 20) {
-      score += 30;
+      score += 20;
     } else {
       reasons.push('Document data appears incomplete or corrupted');
     }
 
-    // Rule 2: Income-to-loan ratio check
+    // Rule 2: Loan-to-income ratio (50 pts)
     const annualIncome = applicant.monthlyIncome * 12;
-    const loanToIncomeRatio = applicant.loanAmount / annualIncome;
-    if (loanToIncomeRatio <= 0.5) {
-      score += 40; // Loan <= 50% of annual income - good
-    } else if (loanToIncomeRatio <= 1.0) {
-      score += 20; // Borderline
+    const loanToIncomeRatio = annualIncome > 0
+      ? applicant.loanAmount / annualIncome
+      : Infinity;
+
+    if (loanToIncomeRatio <= 0.33) {
+      score += 50; // Loan <= 33% of annual income — strong
+    } else if (loanToIncomeRatio <= 0.66) {
+      score += 25; // Loan 33–66% of annual income — borderline
     } else {
-      reasons.push('Loan amount exceeds annual income - high risk');
+      // Loan > 66% of annual income — triggers rejection on its own
+      reasons.push(
+        `Loan amount ($${applicant.loanAmount}) exceeds 66% of annual income ($${annualIncome.toFixed(0)}) — high repayment risk`,
+      );
     }
 
-    // Rule 3: Applicant must be 18+
+    // Rule 3: Age eligibility (30 pts)
     const age = this.calculateAge(applicant.dateOfBirth);
     if (age >= 18 && age <= 70) {
       score += 30;
     } else if (age < 18) {
-      reasons.push('Applicant must be at least 18 years old');
+      reasons.push(`Applicant is ${age} years old — must be at least 18`);
     } else {
-      reasons.push('Applicant age exceeds maximum threshold');
+      reasons.push(`Applicant is ${age} years old — exceeds maximum threshold of 70`);
     }
 
-    const passed = score >= 60;
+    const passed = score >= 70;
 
     return {
       passed,
+      score,
       notes: passed
-        ? `Document check passed with score ${score}/100. Loan-to-income ratio: ${(loanToIncomeRatio * 100).toFixed(1)}%`
-        : `Document check failed with score ${score}/100. Issues: ${reasons.join('; ')}`,
+        ? `Document check passed. Score: ${score}/100. Loan-to-income ratio: ${(loanToIncomeRatio * 100).toFixed(1)}% of annual income.`
+        : `Document check failed. Score: ${score}/100. Reason(s): ${reasons.join('; ')}.`,
       reason: passed ? undefined : reasons.join('; '),
     };
   }
