@@ -105,10 +105,10 @@ export function Alert({ type, title, children }: AlertProps) {
 // StatusBadge
 interface BadgeProps { status: 'PENDING' | 'STEP1_VERIFIED' | 'VERIFIED' | 'REJECTED'; }
 const badgeConfig = {
-  PENDING:        { label: 'Pending Review',   cls: 'bg-amber-100 text-amber-800' },
-  STEP1_VERIFIED: { label: 'Step 1 Complete',  cls: 'bg-brand-100 text-brand-800' },
-  VERIFIED:       { label: 'Approved',         cls: 'bg-green-100 text-green-800' },
-  REJECTED:       { label: 'Not Approved',     cls: 'bg-red-100 text-red-700' },
+  PENDING:        { label: 'Pending',          cls: 'bg-amber-100 text-amber-800' },
+  STEP1_VERIFIED: { label: 'In Progress',      cls: 'bg-brand-100 text-brand-800' },
+  VERIFIED:       { label: 'Verified',         cls: 'bg-green-100 text-green-800' },
+  REJECTED:       { label: 'Rejected',         cls: 'bg-red-100 text-red-700' },
 };
 export function StatusBadge({ status }: BadgeProps) {
   const { label, cls } = badgeConfig[status];
@@ -120,5 +120,3 @@ export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   const sizes = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-10 h-10' };
   return <Loader2 className={`${sizes[size]} animate-spin text-brand-600`} />;
 }
-
-

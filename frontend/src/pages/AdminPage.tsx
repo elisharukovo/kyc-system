@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, RefreshCw, CheckCircle2, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -85,7 +85,7 @@ export function AdminPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {applicants.map((a) => (
-                  <>
+                  <React.Fragment key={a.id}>
                     <tr
                       key={a.id}
                       onClick={() => toggle(a.id)}
@@ -148,7 +148,7 @@ export function AdminPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
