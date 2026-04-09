@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Applicant {
+  id               String            @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String            @unique
+  phone            String
+  dateOfBirth      DateTime
+  nationalId       String            @unique
+  address          String
+  employmentStatus EmploymentStatus
+  monthlyIncome    Float
+  loanAmount       Float
+  loanPurpose      String
+  status           ApplicantStatus   @default(PENDING)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  verificationSteps VerificationStep[]
+  otpRecords        OtpRecord[]
+}
+
+model VerificationStep {
+  id          String                  @id @default(uuid())
+  applicantId String
+  step        Int
+  type        VerificationType
+  status      VerificationStepStatus  @default(PENDING)
+  notes       String?
+  completedAt DateTime?
+  createdAt   DateTime                @default(now())
+
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+}
+
+model OtpRecord {
+  id          String   @id @default(uuid())
+  applicantId String
+  code        String
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  applicant Applicant @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+}
+
+enum ApplicantStatus {
+  PENDING
+  STEP1_VERIFIED
+  VERIFIED
+  REJECTED
+}
+
+enum EmploymentStatus {
+  EMPLOYED
+  SELF_EMPLOYED
+  UNEMPLOYED
+  STUDENT
+}
+
+enum VerificationType {
+  OTP
+  DOCUMENT_CHECK
+}
+
+enum VerificationStepStatus {
+  PENDING
+  PASSED
+  FAILED
+}
