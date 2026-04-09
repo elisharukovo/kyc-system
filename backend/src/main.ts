@@ -1,0 +1,51 @@
+import 'reflect-metadata';
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, {
+    // Increase body size limit to 15MB to accommodate base64-encoded documents
+    // (a 5MB file becomes ~6.7MB in base64; 15MB gives comfortable headroom)
+    bodyParser: true,
+  });
+
+  // Override express body parser limit
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use(require('express').json({ limit: '15mb' }));
+  expressApp.use(require('express').urlencoded({ limit: '15mb', extended: true }));
+
+  app.setGlobalPrefix('api');
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+  });
+
+  const config = new DocumentBuilder()
+    .setTitle('KYC System API')
+    .setDescription('Microloan Foundation - KYC System Design & Implementation')
+    .setVersion('1.0')
+    .addTag('Applicants')
+    .addTag('Verification')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
+  const port = process.env.PORT || 3001;
+  await app.listen(port);
+  console.log(`KYC Backend running on http://localhost:${port}`);
+  console.log(`Swagger docs at http://localhost:${port}/api/docs`);
+}
+
+bootstrap();
