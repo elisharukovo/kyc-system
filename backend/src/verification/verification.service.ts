@@ -179,9 +179,9 @@ export class VerificationService {
   // In a real system this would call an external KYC provider (e.g. Smile Identity, Onfido).
   //
   // Scoring breakdown (100 pts total, pass threshold = 70):
-  //   Rule 1 — Document completeness : 20 pts  (base64 data present and non-trivial)
-  //   Rule 2 — Loan-to-income ratio  : 50 pts  (<=33% annual income=50, <=66%=25, >66%=0)
-  //   Rule 3 — Age eligibility       : 30 pts  (applicant must be 18–70 years old)
+  //   Rule 1 - Document completeness : 20 pts  (base64 data present and non-trivial)
+  //   Rule 2 - Loan-to-income ratio  : 50 pts  (<=33% annual income=50, <=66%=25, >66%=0)
+  //   Rule 3 - Age eligibility       : 30 pts  (applicant must be 18 to 70 years old)
   //
   // To trigger REJECTION in dev/demo:
   //   Submit a loan amount greater than 66% of annual income (monthly income x 12).
@@ -208,13 +208,13 @@ export class VerificationService {
       : Infinity;
 
     if (loanToIncomeRatio <= 0.33) {
-      score += 50; // Loan <= 33% of annual income — strong
+      score += 50; // Loan <= 33% of annual income (strong)
     } else if (loanToIncomeRatio <= 0.66) {
-      score += 25; // Loan 33–66% of annual income — borderline
+      score += 25; // Loan 33–66% of annual income (borderline)
     } else {
-      // Loan > 66% of annual income — triggers rejection on its own
+      // Loan > 66% of annual income - triggers rejection on its own
       reasons.push(
-        `Loan amount ($${applicant.loanAmount}) exceeds 66% of annual income ($${annualIncome.toFixed(0)}) — high repayment risk`,
+        `Loan amount ($${applicant.loanAmount}) exceeds 66% of annual income ($${annualIncome.toFixed(0)}) - high repayment risk`,
       );
     }
 
@@ -223,9 +223,9 @@ export class VerificationService {
     if (age >= 18 && age <= 70) {
       score += 30;
     } else if (age < 18) {
-      reasons.push(`Applicant is ${age} years old — must be at least 18`);
+      reasons.push(`Applicant is ${age} years old - must be at least 18`);
     } else {
-      reasons.push(`Applicant is ${age} years old — exceeds maximum threshold of 70`);
+      reasons.push(`Applicant is ${age} years old - exceeds maximum threshold of 70`);
     }
 
     const passed = score >= 70;

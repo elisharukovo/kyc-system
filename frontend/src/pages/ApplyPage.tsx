@@ -14,7 +14,8 @@ import { Button, FormField, Input, Alert } from '../components/ui';
 import { getApplicantByEmail, getApiError } from '../services/api';
 import type { Applicant, KycStep } from '../types';
 
-// Maps backend applicant status to the correct UI step
+const order: KycStep[] = ['application', 'otp', 'document', 'result'];
+
 function statusToStep(status: Applicant['status']): KycStep {
   switch (status) {
     case 'PENDING':        return 'otp';
@@ -26,32 +27,19 @@ function statusToStep(status: Applicant['status']): KycStep {
 }
 
 const stepMeta: Record<KycStep, { title: string; subtitle: string }> = {
-  application: {
-    title: 'Loan Application',
-    subtitle: 'Complete your personal details and loan request to get started.',
-  },
-  otp: {
-    title: 'Identity Verification',
-    subtitle: 'Enter the 6-digit code sent to your registered contact.',
-  },
-  document: {
-    title: 'Document Upload',
-    subtitle: 'Upload a valid identity document to complete your verification.',
-  },
-  result: {
-    title: 'Application Decision',
-    subtitle: 'Your application has been reviewed. See the outcome below.',
-  },
+  application: { title: 'Loan Application',       subtitle: 'Complete your personal details and loan request to get started.' },
+  otp:         { title: 'Identity Verification',  subtitle: 'Enter the 6-digit code sent to your registered contact.' },
+  document:    { title: 'Document Upload',        subtitle: 'Upload a valid identity document to complete your verification.' },
+  result:      { title: 'Application Decision',   subtitle: 'Your application has been reviewed. See the outcome below.' },
 };
 
-// --- Resume lookup form ---
 const resumeSchema = z.object({
   email: z.string().email('Enter the email address used in your application'),
 });
 type ResumeForm = z.infer<typeof resumeSchema>;
 
 function ResumeForm({ onFound }: { onFound: (applicant: Applicant) => void }) {
-  const [notFound, setNotFound] = useState(false);
+  const [notFound, setNotFound]     = useState(false);
   const [alreadyDone, setAlreadyDone] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
@@ -63,20 +51,15 @@ function ResumeForm({ onFound }: { onFound: (applicant: Applicant) => void }) {
     try {
       const res = await getApplicantByEmail(email);
       const applicant = res.data;
-
       if (applicant.status === 'VERIFIED' || applicant.status === 'REJECTED') {
         setAlreadyDone(true);
         return;
       }
-
       toast.success('Application found. Resuming where you left off.');
       onFound(applicant);
     } catch (err: any) {
-      if (err?.response?.status === 404) {
-        setNotFound(true);
-      } else {
-        toast.error(getApiError(err));
-      }
+      if (err?.response?.status === 404) setNotFound(true);
+      else toast.error(getApiError(err));
     }
   };
 
@@ -101,44 +84,61 @@ function ResumeForm({ onFound }: { onFound: (applicant: Applicant) => void }) {
 
       {notFound && (
         <Alert type="warning" title="No application found">
-          We could not find an application with that email. Please check the address or start a new application below.
+          We could not find an application with that email. Please check the address or start a new application.
         </Alert>
       )}
-
       {alreadyDone && (
         <Alert type="info" title="Application already complete">
-          This application has already been fully processed. Use the{' '}
-          <strong>Track Application</strong> page to view your result.
+          This application has already been fully processed. Use the <strong>Track Application</strong> page to view your result.
         </Alert>
       )}
     </div>
   );
 }
 
-// --- Main page ---
 type Mode = 'choose' | 'resume' | 'new';
 
 export function ApplyPage() {
-  const [mode, setMode]             = useState<Mode>('choose');
-  const [currentStep, setCurrentStep] = useState<KycStep>('application');
-  const [applicant, setApplicant]   = useState<Applicant | null>(null);
+  const [mode, setMode]                 = useState<Mode>('choose');
+  const [currentStep, setCurrentStep]   = useState<KycStep>('application');
+  const [applicant, setApplicant]       = useState<Applicant | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<KycStep[]>([]);
 
   const advance = (next: KycStep) => (data: Applicant) => {
+    const current = currentStep;
     setApplicant(data);
+    setCompletedSteps((prev) => prev.includes(current) ? prev : [...prev, current]);
     setCurrentStep(next);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Called when resume lookup finds the applicant
   const handleResumed = (found: Applicant) => {
+    const resumeStep = statusToStep(found.status);
+    // Mark everything before the resume point as completed
+    const idx = order.indexOf(resumeStep);
+    const done = order.slice(0, idx) as KycStep[];
     setApplicant(found);
-    setCurrentStep(statusToStep(found.status));
-    setMode('new'); // reuse the same stepper UI
+    setCompletedSteps(done);
+    setCurrentStep(resumeStep);
+    setMode('new');
+  };
+
+  // Allow navigating back to any completed step
+  const handleStepClick = (step: KycStep) => {
+    if (!completedSteps.includes(step) && step !== currentStep) return;
+    setCurrentStep(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const resetFlow = () => {
+    setMode('choose');
+    setCurrentStep('application');
+    setApplicant(null);
+    setCompletedSteps([]);
   };
 
   const meta = stepMeta[currentStep];
 
-  // --- Choose screen ---
   if (mode === 'choose') {
     return (
       <div className="max-w-2xl mx-auto space-y-5">
@@ -180,7 +180,6 @@ export function ApplyPage() {
     );
   }
 
-  // --- Resume lookup screen ---
   if (mode === 'resume') {
     return (
       <div className="max-w-2xl mx-auto space-y-5">
@@ -201,10 +200,7 @@ export function ApplyPage() {
 
         <p className="text-xs text-center text-gray-400">
           Starting fresh instead?{' '}
-          <button
-            onClick={() => setMode('new')}
-            className="text-brand-600 font-medium hover:underline"
-          >
+          <button onClick={() => setMode('new')} className="text-brand-600 font-medium hover:underline">
             New application
           </button>
         </p>
@@ -212,7 +208,6 @@ export function ApplyPage() {
     );
   }
 
-  // --- Active flow (new or resumed) ---
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -222,7 +217,7 @@ export function ApplyPage() {
         </div>
         {currentStep !== 'result' && (
           <button
-            onClick={() => { setMode('choose'); setCurrentStep('application'); setApplicant(null); }}
+            onClick={resetFlow}
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap mt-1"
           >
             Start over
@@ -231,7 +226,11 @@ export function ApplyPage() {
       </div>
 
       <div className="card py-5">
-        <StepProgress currentStep={currentStep} />
+        <StepProgress
+          currentStep={currentStep}
+          onStepClick={handleStepClick}
+          completedSteps={completedSteps}
+        />
       </div>
 
       <div className="card">

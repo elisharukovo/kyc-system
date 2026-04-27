@@ -144,7 +144,7 @@ export function DocumentVerification({ applicant, onSuccess }: DocumentVerificat
       {/* Dev-mode: show scoring rules so rejection can be demonstrated */}
       {import.meta.env.DEV && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 space-y-1.5">
-          <p className="font-bold text-amber-900">Dev mode — verification scoring</p>
+          <p className="font-bold text-amber-900">Dev mode: verification scoring</p>
           <p>Score ≥ 70 = <span className="font-semibold text-green-700">APPROVED</span> &nbsp;|&nbsp; Score &lt; 70 = <span className="font-semibold text-red-600">REJECTED</span></p>
           <ul className="space-y-1 pl-2 border-l-2 border-amber-200">
             <li><span className="font-semibold">+20</span> Document uploaded (almost always passes)</li>
